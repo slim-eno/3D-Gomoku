@@ -89,6 +89,11 @@
                 this.bounceFactor = 0.7;
                 this.groundY = -2;
                 
+                this.forwardSpeed = 0.12;
+                this.friction = 0.999;
+                this.cameraFollow = true;
+                this.rollingSpeed = 0.05;
+                
                 this.init();
                 this.setupEventListeners();
                 this.animate();
@@ -305,10 +310,12 @@
                 });
                 
                 this.ball = new THREE.Mesh(geometry, material);
-                this.ball.position.set(0, 5, 0);
+                this.ball.position.set(0, 5, 8);
                 this.ball.castShadow = true;
                 this.ball.receiveShadow = true;
                 this.scene.add(this.ball);
+                
+                this.velocity.z = -this.forwardSpeed;
             }
             
             createGround() {
@@ -472,14 +479,28 @@
                     }
                 }
                 
-                this.ball.rotation.x += this.velocity.y * 0.1;
-                this.ball.rotation.z += this.velocity.y * 0.05;
+                this.ball.rotation.x += Math.abs(this.velocity.z) * this.rollingSpeed;
+                
+                if (this.velocity.z !== 0) {
+                    this.velocity.z *= this.friction;
+                }
             }
             
             animate() {
                 requestAnimationFrame(() => this.animate());
                 
                 this.updatePhysics();
+                
+                if (this.cameraFollow && this.ball) {
+                    const targetZ = this.ball.position.z;
+                    
+                    this.cameraTarget.z += (targetZ - this.cameraTarget.z) * 0.05;
+                    
+                    const direction = new THREE.Vector3().subVectors(this.camera.position, this.cameraTarget).normalize();
+                    this.camera.position.copy(this.cameraTarget).add(direction.multiplyScalar(this.cameraDistance));
+                    
+                    this.camera.lookAt(this.cameraTarget);
+                }
                 
                 this.renderer.render(this.scene, this.camera);
             }
