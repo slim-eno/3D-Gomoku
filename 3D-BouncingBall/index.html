@@ -156,6 +156,12 @@
                 
                 this.trackCycleLength = segmentLength * repeatCount;
                 
+                const trackGeometry = new THREE.BoxGeometry(trackWidth, 0.3, segmentLength);
+                const borderGeometry = new THREE.BoxGeometry(0.4, 0.6, segmentLength);
+                const dashGeometry = new THREE.BoxGeometry(0.2, 0.05, segmentLength / 4);
+                const neonGeometry = new THREE.BoxGeometry(0.1, 0.1, segmentLength);
+                const lightGeometry = new THREE.BoxGeometry(0.15, 0.15, segmentLength / 6);
+                
                 const trackMaterial = new THREE.MeshStandardMaterial({
                     color: 0x1a1a2e,
                     roughness: 0.5,
@@ -198,15 +204,11 @@
                     metalness: 0.8
                 });
                 
-                const borderHeight = 0.6;
-                const archWidth = trackWidth + 2;
-                
-                const trackGeometry = new THREE.BoxGeometry(trackWidth, 0.3, segmentLength);
-                const borderGeometry = new THREE.BoxGeometry(0.4, borderHeight, segmentLength);
-                const dashGeometry = new THREE.BoxGeometry(0.2, 0.05, segmentLength / 4);
-                const neonGeometry = new THREE.BoxGeometry(0.1, 0.1, segmentLength);
-                const lightGeometry = new THREE.BoxGeometry(0.15, 0.15, segmentLength / 6);
                 const glowGeometry = new THREE.BoxGeometry(trackWidth + 0.8, 0.1, this.trackCycleLength);
+                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                glow.position.set(0, this.groundY + 0.8, -this.trackCycleLength / 2 + 10);
+                glow.userData = { type: 'glow', baseZ: -this.trackCycleLength / 2 + 10 };
+                trackGroup.add(glow);
                 
                 const dashInterval = 5;
                 const dashesPerSegment = Math.floor(segmentLength / dashInterval);
@@ -223,14 +225,14 @@
                     trackGroup.add(track);
                     
                     const leftBorder = new THREE.Mesh(borderGeometry, borderMaterial);
-                    leftBorder.position.set(-trackWidth / 2 - 0.2, this.groundY + borderHeight / 2 + 0.15, baseZ - segmentLength / 2);
+                    leftBorder.position.set(-trackWidth / 2 - 0.2, this.groundY + 0.3 + 0.15, baseZ - segmentLength / 2);
                     leftBorder.castShadow = true;
                     leftBorder.receiveShadow = true;
                     leftBorder.userData = { type: 'border' };
                     trackGroup.add(leftBorder);
                     
                     const rightBorder = new THREE.Mesh(borderGeometry, borderMaterial);
-                    rightBorder.position.set(trackWidth / 2 + 0.2, this.groundY + borderHeight / 2 + 0.15, baseZ - segmentLength / 2);
+                    rightBorder.position.set(trackWidth / 2 + 0.2, this.groundY + 0.3 + 0.15, baseZ - segmentLength / 2);
                     rightBorder.castShadow = true;
                     rightBorder.receiveShadow = true;
                     rightBorder.userData = { type: 'border' };
@@ -266,15 +268,11 @@
                     }
                 }
                 
-                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-                glow.position.set(0, this.groundY + 0.8, -this.trackCycleLength / 2 + 10);
-                glow.userData = { type: 'glow', baseZ: -this.trackCycleLength / 2 + 10 };
-                trackGroup.add(glow);
-                
                 this.scene.add(trackGroup);
                 this.trackGroup = trackGroup;
                 
-                console.log('Track initialized with', trackGroup.children.length, 'objects (object pool pattern)');
+                this.sharedGeometries = [trackGeometry, borderGeometry, dashGeometry, neonGeometry, lightGeometry, glowGeometry];
+                this.sharedMaterials = [trackMaterial, borderMaterial, dashMaterial, neonMaterial, lightMaterial, glowMaterial];
             }
             
             createBall() {
