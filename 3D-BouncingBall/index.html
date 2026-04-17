@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Bouncing Ball</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #canvas {
+            display: block;
+            cursor: grab;
+        }
+        
+        #canvas:active {
+            cursor: grabbing;
+        }
+        
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+        
+        #info h2 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        #info p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="canvas"></canvas>
+        
+        <div id="info">
+            <h2>3D Bouncing Ball</h2>
+            <p>左键拖动旋转视角</p>
+            <p>滚轮缩放</p>
+            <p>右键拖动平移</p>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        class BouncingBall {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.ball = null;
+                this.ground = null;
+                
+                this.isRotating = false;
+                this.isPanning = false;
+                this.lastMousePosition = { x: 0, y: 0 };
+                this.cameraTarget = new THREE.Vector3(0, 0, 0);
+                this.cameraDistance = 10;
+                
+                this.velocity = new THREE.Vector3(0, 0, 0);
+                this.gravity = -0.015;
+                this.bounceFactor = 0.7;
+                this.groundY = -2;
+                
+                this.forwardSpeed = 0.15;
+                this.friction = 0.999;
+                this.cameraFollow = false;
+                this.rollingSpeed = 0.08;
+                this.trackSegmentLength = 30;
+                this.trackOffset = 0;
+                
+                this.init();
+                this.setupEventListeners();
+                this.animate();
+            }
+            
+            init() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x87CEEB);
+                
+                this.camera = new THREE.PerspectiveCamera(
+                    75,
+                    window.innerWidth / window.innerHeight,
+                    0.1,
+                    1000
+                );
+                this.camera.position.set(8, 5, 8);
+                this.camera.lookAt(this.cameraTarget);
+                
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: document.getElementById('canvas'),
+                    antialias: true
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.renderer.shadowMap.enabled = true;
+                
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 15, 10);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 1024;
+                directionalLight.shadow.mapSize.height = 1024;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 50;
+                directionalLight.shadow.camera.left = -20;
+                directionalLight.shadow.camera.right = 20;
+                directionalLight.shadow.camera.top = 20;
+                directionalLight.shadow.camera.bottom = -20;
+                this.scene.add(directionalLight);
+                
+                const pointLight = new THREE.PointLight(0xffffff, 0.5);
+                pointLight.position.set(-10, 10, -10);
+                this.scene.add(pointLight);
+                
+                this.createBall();
+                this.createGround();
+                this.createTrack();
+            }
+            
+            createTrack() {
+                const trackGroup = new THREE.Group();
+                
+                const trackWidth = 6;
+                const segmentLength = 20;
+                const repeatCount = 6;
+                
+                this.trackCycleLength = segmentLength * repeatCount;
+                
+                const trackGeometry = new THREE.BoxGeometry(trackWidth, 0.3, segmentLength);
+                const borderGeometry = new THREE.BoxGeometry(0.4, 0.6, segmentLength);
+                const dashGeometry = new THREE.BoxGeometry(0.2, 0.05, segmentLength / 4);
+                const neonGeometry = new THREE.BoxGeometry(0.1, 0.1, segmentLength);
+                const lightGeometry = new THREE.BoxGeometry(0.15, 0.15, segmentLength / 6);
+                
+                const trackMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x1a1a2e,
+                    roughness: 0.5,
+                    metalness: 0.3
+                });
+                
+                const borderMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x16213e,
+                    roughness: 0.4,
+                    metalness: 0.5
+                });
+                
+                const dashMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    roughness: 0.3,
+                    metalness: 0.1
+                });
+                
+                const neonMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x00ff88,
+                    emissive: 0x00aa55,
+                    emissiveIntensity: 0.8,
+                    roughness: 0.1,
+                    metalness: 0.9
+                });
+                
+                const lightMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    emissive: 0xffffff,
+                    emissiveIntensity: 1.0,
+                    roughness: 0.1,
+                    metalness: 0.8
+                });
+                
+                const glowMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x00ff88,
+                    transparent: true,
+                    opacity: 0.1,
+                    roughness: 0.1,
+                    metalness: 0.8
+                });
+                
+                const glowGeometry = new THREE.BoxGeometry(trackWidth + 0.8, 0.1, this.trackCycleLength);
+                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                glow.position.set(0, this.groundY + 0.8, -this.trackCycleLength / 2 + 10);
+                glow.userData = { type: 'glow', baseZ: -this.trackCycleLength / 2 + 10 };
+                trackGroup.add(glow);
+                
+                const dashInterval = 5;
+                const dashesPerSegment = Math.floor(segmentLength / dashInterval);
+                const lightInterval = 4;
+                const lightsPerSegment = Math.floor(segmentLength / lightInterval);
+                
+                for (let seg = 0; seg < repeatCount; seg++) {
+                    const baseZ = -seg * segmentLength + 10;
+                    
+                    const track = new THREE.Mesh(trackGeometry, trackMaterial);
+                    track.position.set(0, this.groundY + 0.15, baseZ - segmentLength / 2);
+                    track.receiveShadow = true;
+                    track.userData = { type: 'trackSegment' };
+                    trackGroup.add(track);
+                    
+                    const leftBorder = new THREE.Mesh(borderGeometry, borderMaterial);
+                    leftBorder.position.set(-trackWidth / 2 - 0.2, this.groundY + 0.3 + 0.15, baseZ - segmentLength / 2);
+                    leftBorder.castShadow = true;
+                    leftBorder.receiveShadow = true;
+                    leftBorder.userData = { type: 'border' };
+                    trackGroup.add(leftBorder);
+                    
+                    const rightBorder = new THREE.Mesh(borderGeometry, borderMaterial);
+                    rightBorder.position.set(trackWidth / 2 + 0.2, this.groundY + 0.3 + 0.15, baseZ - segmentLength / 2);
+                    rightBorder.castShadow = true;
+                    rightBorder.receiveShadow = true;
+                    rightBorder.userData = { type: 'border' };
+                    trackGroup.add(rightBorder);
+                    
+                    for (let i = 0; i < dashesPerSegment; i++) {
+                        const dash = new THREE.Mesh(dashGeometry, dashMaterial);
+                        dash.position.set(0, this.groundY + 0.4, baseZ - i * dashInterval);
+                        dash.userData = { type: 'dash' };
+                        trackGroup.add(dash);
+                    }
+                    
+                    const leftNeon = new THREE.Mesh(neonGeometry, neonMaterial);
+                    leftNeon.position.set(-trackWidth / 2, this.groundY + 0.65, baseZ - segmentLength / 2);
+                    leftNeon.userData = { type: 'neon' };
+                    trackGroup.add(leftNeon);
+                    
+                    const rightNeon = new THREE.Mesh(neonGeometry, neonMaterial);
+                    rightNeon.position.set(trackWidth / 2, this.groundY + 0.65, baseZ - segmentLength / 2);
+                    rightNeon.userData = { type: 'neon' };
+                    trackGroup.add(rightNeon);
+                    
+                    for (let i = 0; i < lightsPerSegment; i++) {
+                        const leftLight = new THREE.Mesh(lightGeometry, lightMaterial);
+                        leftLight.position.set(-trackWidth / 2 + 0.4, this.groundY + 0.6, baseZ - i * lightInterval);
+                        leftLight.userData = { type: 'light' };
+                        trackGroup.add(leftLight);
+                        
+                        const rightLight = new THREE.Mesh(lightGeometry, lightMaterial);
+                        rightLight.position.set(trackWidth / 2 - 0.4, this.groundY + 0.6, baseZ - i * lightInterval);
+                        rightLight.userData = { type: 'light' };
+                        trackGroup.add(rightLight);
+                    }
+                }
+                
+                this.scene.add(trackGroup);
+                this.trackGroup = trackGroup;
+                
+                this.sharedGeometries = [trackGeometry, borderGeometry, dashGeometry, neonGeometry, lightGeometry, glowGeometry];
+                this.sharedMaterials = [trackMaterial, borderMaterial, dashMaterial, neonMaterial, lightMaterial, glowMaterial];
+            }
+            
+            createBall() {
+                const geometry = new THREE.SphereGeometry(1.5, 64, 64);
+                
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0xff4444,
+                    roughness: 0.3,
+                    metalness: 0.2
+                });
+                
+                this.ball = new THREE.Mesh(geometry, material);
+                this.ball.position.set(0, 8, 0);
+                this.ball.castShadow = true;
+                this.ball.receiveShadow = true;
+                this.scene.add(this.ball);
+            }
+            
+            createGround() {
+                const geometry = new THREE.PlaneGeometry(30, 30);
+                
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x4CAF50,
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+                
+                this.ground = new THREE.Mesh(geometry, material);
+                this.ground.rotation.x = -Math.PI / 2;
+                this.ground.position.y = this.groundY;
+                this.ground.receiveShadow = true;
+                this.scene.add(this.ground);
+                
+                this.gridHelper = new THREE.GridHelper(30, 30, 0x2E7D32, 0x388E3C);
+                this.gridHelper.position.y = this.groundY + 0.01;
+                this.scene.add(this.gridHelper);
+            }
+            
+            setupEventListeners() {
+                const canvas = this.renderer.domElement;
+                
+                canvas.addEventListener('mousedown', (event) => this.onMouseDown(event));
+                canvas.addEventListener('mousemove', (event) => this.onMouseMove(event));
+                canvas.addEventListener('mouseup', () => this.onMouseUp());
+                canvas.addEventListener('wheel', (event) => this.onMouseWheel(event));
+                canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+                
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+            
+            onMouseDown(event) {
+                const rect = this.renderer.domElement.getBoundingClientRect();
+                this.lastMousePosition = {
+                    x: event.clientX - rect.left,
+                    y: event.clientY - rect.top
+                };
+                
+                if (event.button === 0) {
+                    this.isRotating = true;
+                } else if (event.button === 2) {
+                    this.isPanning = true;
+                }
+            }
+            
+            onMouseMove(event) {
+                const rect = this.renderer.domElement.getBoundingClientRect();
+                const currentX = event.clientX - rect.left;
+                const currentY = event.clientY - rect.top;
+                
+                const deltaX = currentX - this.lastMousePosition.x;
+                const deltaY = currentY - this.lastMousePosition.y;
+                
+                if (this.isRotating) {
+                    this.rotateCamera(deltaX, deltaY);
+                } else if (this.isPanning) {
+                    this.panCamera(deltaX, deltaY);
+                }
+                
+                this.lastMousePosition = { x: currentX, y: currentY };
+            }
+            
+            onMouseUp() {
+                this.isRotating = false;
+                this.isPanning = false;
+            }
+            
+            onMouseWheel(event) {
+                this.zoomCamera(event.deltaY);
+            }
+            
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            
+            rotateCamera(deltaX, deltaY) {
+                const sensitivity = 0.02;
+                
+                const cameraPosition = this.camera.position.clone();
+                const targetPosition = this.cameraTarget.clone();
+                
+                const direction = new THREE.Vector3().subVectors(cameraPosition, targetPosition).normalize();
+                const distance = cameraPosition.distanceTo(targetPosition);
+                
+                const up = new THREE.Vector3(0, 1, 0);
+                const right = new THREE.Vector3().crossVectors(direction, up).normalize();
+                
+                const rotationY = new THREE.Quaternion().setFromAxisAngle(up, deltaX * sensitivity);
+                const rotationX = new THREE.Quaternion().setFromAxisAngle(right, deltaY * sensitivity);
+                
+                direction.applyQuaternion(rotationY);
+                direction.applyQuaternion(rotationX);
+                
+                const newPosition = new THREE.Vector3().addVectors(
+                    targetPosition,
+                    direction.multiplyScalar(distance)
+                );
+                
+                this.camera.position.copy(newPosition);
+                this.camera.lookAt(targetPosition);
+            }
+            
+            panCamera(deltaX, deltaY) {
+                const panSpeed = 0.03;
+                const panDirection = new THREE.Vector3(-deltaX, deltaY, 0).multiplyScalar(panSpeed);
+                
+                const cameraQuaternion = new THREE.Quaternion().setFromRotationMatrix(
+                    new THREE.Matrix4().lookAt(
+                        this.camera.position,
+                        this.cameraTarget,
+                        new THREE.Vector3(0, 1, 0)
+                    )
+                );
+                
+                panDirection.applyQuaternion(cameraQuaternion);
+                
+                this.camera.position.add(panDirection);
+                this.cameraTarget.add(panDirection);
+            }
+            
+            zoomCamera(delta) {
+                const zoomSpeed = 0.1;
+                const minDistance = 3;
+                const maxDistance = 50;
+                
+                const cameraToTarget = new THREE.Vector3()
+                    .subVectors(this.camera.position, this.cameraTarget);
+                
+                let currentDistance = cameraToTarget.length();
+                let newDistance = currentDistance - delta * zoomSpeed;
+                
+                newDistance = Math.max(minDistance, Math.min(maxDistance, newDistance));
+                
+                cameraToTarget.normalize().multiplyScalar(newDistance);
+                this.camera.position.copy(this.cameraTarget).add(cameraToTarget);
+            }
+            
+            updatePhysics() {
+                this.velocity.y += this.gravity;
+                this.ball.position.y += this.velocity.y;
+                
+                const ballRadius = 1.5;
+                const groundLevel = this.groundY + ballRadius;
+                
+                if (this.ball.position.y <= groundLevel) {
+                    this.ball.position.y = groundLevel;
+                    this.velocity.y = 0.35;
+                }
+                
+                if (this.trackGroup && this.trackCycleLength) {
+                    this.trackGroup.children.forEach(child => {
+                        child.position.z += this.forwardSpeed;
+                        
+                        if (child.position.z > 30) {
+                            child.position.z -= this.trackCycleLength;
+                        }
+                    });
+                }
+                
+                if (this.ground && this.gridHelper) {
+                    this.ground.position.z += this.forwardSpeed;
+                    this.gridHelper.position.z += this.forwardSpeed;
+                    
+                    const groundCycleLength = 30;
+                    if (this.ground.position.z > 15) {
+                        this.ground.position.z -= groundCycleLength;
+                        this.gridHelper.position.z -= groundCycleLength;
+                    }
+                }
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                this.updatePhysics();
+                
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            new BouncingBall();
+        });
+    </script>
+</body>
+</html>
