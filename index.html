@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 项目合集</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 800px;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+        
+        .projects {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .project-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            width: 300px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .project-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .project-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+        
+        .project-title {
+            color: #333;
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+        }
+        
+        .project-desc {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .info-panel {
+            margin-top: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+        }
+        
+        .info-panel h3 {
+            margin-bottom: 10px;
+        }
+        
+        .info-panel p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 3D 项目合集</h1>
+        <p class="subtitle">基于 Three.js 构建的精彩 3D 体验</p>
+        
+        <div class="projects">
+            <div class="project-card" onclick="window.location.href='3D-BouncingBall/'">
+                <div class="project-icon">🏀</div>
+                <h2 class="project-title">3D 弹跳球</h2>
+                <p class="project-desc">一个具有物理效果的 3D 弹跳球，带有炫酷的赛道和发光效果。支持视角控制和重力模拟。</p>
+                <a href="3D-BouncingBall/" class="btn">开始体验 →</a>
+            </div>
+            
+            <div class="project-card" onclick="window.location.href='3D-Gomoku/'">
+                <div class="project-icon">⚫</div>
+                <h2 class="project-title">3D 五子棋</h2>
+                <p class="project-desc">经典五子棋的 3D 版本，支持双人对战和人机对战。可自定义棋盘大小和皮肤样式。</p>
+                <a href="3D-Gomoku/" class="btn">开始体验 →</a>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>🎯 操作说明</h3>
+            <p>
+                <strong>左键拖动</strong>：旋转视角<br>
+                <strong>右键拖动</strong>：平移视角<br>
+                <strong>鼠标滚轮</strong>：缩放视图
+            </p>
+        </div>
+    </div>
+</body>
+</html>
