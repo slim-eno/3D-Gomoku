@@ -137,6 +137,162 @@
                 
                 this.createBall();
                 this.createGround();
+                this.createTrack();
+            }
+            
+            createTrack() {
+                const trackGroup = new THREE.Group();
+                
+                const trackLength = 50;
+                const trackWidth = 6;
+                const laneCount = 3;
+                const segmentLength = 5;
+                const segments = Math.floor(trackLength / segmentLength);
+                
+                const trackMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x1a1a2e,
+                    roughness: 0.5,
+                    metalness: 0.3
+                });
+                
+                const trackGeometry = new THREE.BoxGeometry(trackWidth, 0.3, trackLength);
+                const track = new THREE.Mesh(trackGeometry, trackMaterial);
+                track.position.set(0, this.groundY + 0.15, -trackLength / 2 + 5);
+                track.receiveShadow = true;
+                trackGroup.add(track);
+                
+                const borderMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x16213e,
+                    roughness: 0.4,
+                    metalness: 0.5
+                });
+                
+                const borderHeight = 0.6;
+                const borderGeometry = new THREE.BoxGeometry(0.4, borderHeight, trackLength);
+                
+                const leftBorder = new THREE.Mesh(borderGeometry, borderMaterial);
+                leftBorder.position.set(-trackWidth / 2 - 0.2, this.groundY + borderHeight / 2 + 0.15, -trackLength / 2 + 5);
+                leftBorder.castShadow = true;
+                leftBorder.receiveShadow = true;
+                trackGroup.add(leftBorder);
+                
+                const rightBorder = new THREE.Mesh(borderGeometry, borderMaterial);
+                rightBorder.position.set(trackWidth / 2 + 0.2, this.groundY + borderHeight / 2 + 0.15, -trackLength / 2 + 5);
+                rightBorder.castShadow = true;
+                rightBorder.receiveShadow = true;
+                trackGroup.add(rightBorder);
+                
+                const dashMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    roughness: 0.3,
+                    metalness: 0.1
+                });
+                
+                const dashGeometry = new THREE.BoxGeometry(0.2, 0.05, segmentLength / 3);
+                
+                for (let i = 0; i < segments; i++) {
+                    const dash = new THREE.Mesh(dashGeometry, dashMaterial);
+                    dash.position.set(0, this.groundY + 0.4, -i * segmentLength + 5);
+                    trackGroup.add(dash);
+                }
+                
+                const neonMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x00ff88,
+                    emissive: 0x00aa55,
+                    emissiveIntensity: 0.8,
+                    roughness: 0.1,
+                    metalness: 0.9
+                });
+                
+                const neonGeometry = new THREE.BoxGeometry(0.1, 0.1, trackLength);
+                
+                const leftNeon = new THREE.Mesh(neonGeometry, neonMaterial);
+                leftNeon.position.set(-trackWidth / 2, this.groundY + 0.65, -trackLength / 2 + 5);
+                trackGroup.add(leftNeon);
+                
+                const rightNeon = new THREE.Mesh(neonGeometry, neonMaterial);
+                rightNeon.position.set(trackWidth / 2, this.groundY + 0.65, -trackLength / 2 + 5);
+                trackGroup.add(rightNeon);
+                
+                const lightMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    emissive: 0xffffff,
+                    emissiveIntensity: 1.0,
+                    roughness: 0.1,
+                    metalness: 0.8
+                });
+                
+                const lightGeometry = new THREE.BoxGeometry(0.15, 0.15, segmentLength / 5);
+                
+                for (let i = 0; i < segments; i++) {
+                    const leftLight = new THREE.Mesh(lightGeometry, lightMaterial);
+                    leftLight.position.set(-trackWidth / 2 + 0.4, this.groundY + 0.6, -i * segmentLength + 5);
+                    trackGroup.add(leftLight);
+                    
+                    const rightLight = new THREE.Mesh(lightGeometry, lightMaterial);
+                    rightLight.position.set(trackWidth / 2 - 0.4, this.groundY + 0.6, -i * segmentLength + 5);
+                    trackGroup.add(rightLight);
+                }
+                
+                const archMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x2d3436,
+                    roughness: 0.5,
+                    metalness: 0.7
+                });
+                
+                const archWidth = trackWidth + 2;
+                const archHeight = 6;
+                
+                const poleGeometry = new THREE.BoxGeometry(0.3, archHeight, 0.3);
+                const topGeometry = new THREE.BoxGeometry(archWidth, 0.3, 0.3);
+                
+                const archCount = Math.floor(trackLength / 15);
+                
+                for (let i = 1; i <= archCount; i++) {
+                    const zPos = -i * 15 + 10;
+                    
+                    const leftPole = new THREE.Mesh(poleGeometry, archMaterial);
+                    leftPole.position.set(-archWidth / 2, this.groundY + archHeight / 2 + 0.15, zPos);
+                    leftPole.castShadow = true;
+                    trackGroup.add(leftPole);
+                    
+                    const rightPole = new THREE.Mesh(poleGeometry, archMaterial);
+                    rightPole.position.set(archWidth / 2, this.groundY + archHeight / 2 + 0.15, zPos);
+                    rightPole.castShadow = true;
+                    trackGroup.add(rightPole);
+                    
+                    const top = new THREE.Mesh(topGeometry, archMaterial);
+                    top.position.set(0, this.groundY + archHeight + 0.15, zPos);
+                    top.castShadow = true;
+                    trackGroup.add(top);
+                    
+                    const archLightGeometry = new THREE.BoxGeometry(archWidth - 0.5, 0.1, 0.1);
+                    const archLightMaterial = new THREE.MeshStandardMaterial({
+                        color: 0x00ff88,
+                        emissive: 0x00aa55,
+                        emissiveIntensity: 1.5
+                    });
+                    
+                    const archLight = new THREE.Mesh(archLightGeometry, archLightMaterial);
+                    archLight.position.set(0, this.groundY + archHeight + 0.15, zPos);
+                    trackGroup.add(archLight);
+                }
+                
+                const glowMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x00ff88,
+                    transparent: true,
+                    opacity: 0.1,
+                    roughness: 0.1,
+                    metalness: 0.8
+                });
+                
+                const glowGeometry = new THREE.BoxGeometry(trackWidth + 0.8, 0.1, trackLength);
+                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                glow.position.set(0, this.groundY + 0.8, -trackLength / 2 + 5);
+                trackGroup.add(glow);
+                
+                this.scene.add(trackGroup);
+                this.trackGroup = trackGroup;
             }
             
             createBall() {
