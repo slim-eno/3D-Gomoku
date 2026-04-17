@@ -154,6 +154,8 @@
                 const segmentLength = 20;
                 const repeatCount = 6;
                 
+                this.trackCycleLength = segmentLength * repeatCount;
+                
                 const trackMaterial = new THREE.MeshStandardMaterial({
                     color: 0x1a1a2e,
                     roughness: 0.5,
@@ -165,8 +167,6 @@
                     roughness: 0.4,
                     metalness: 0.5
                 });
-                
-                const borderHeight = 0.6;
                 
                 const dashMaterial = new THREE.MeshStandardMaterial({
                     color: 0xffffff,
@@ -190,28 +190,37 @@
                     metalness: 0.8
                 });
                 
-                const archMaterial = new THREE.MeshStandardMaterial({
-                    color: 0x2d3436,
-                    roughness: 0.5,
-                    metalness: 0.7
+                const glowMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x00ff88,
+                    transparent: true,
+                    opacity: 0.1,
+                    roughness: 0.1,
+                    metalness: 0.8
                 });
                 
+                const borderHeight = 0.6;
                 const archWidth = trackWidth + 2;
-                const archHeight = 6;
                 
-                this.trackCycleLength = segmentLength * repeatCount;
+                const trackGeometry = new THREE.BoxGeometry(trackWidth, 0.3, segmentLength);
+                const borderGeometry = new THREE.BoxGeometry(0.4, borderHeight, segmentLength);
+                const dashGeometry = new THREE.BoxGeometry(0.2, 0.05, segmentLength / 4);
+                const neonGeometry = new THREE.BoxGeometry(0.1, 0.1, segmentLength);
+                const lightGeometry = new THREE.BoxGeometry(0.15, 0.15, segmentLength / 6);
+                const glowGeometry = new THREE.BoxGeometry(trackWidth + 0.8, 0.1, this.trackCycleLength);
+                
+                const dashInterval = 5;
+                const dashesPerSegment = Math.floor(segmentLength / dashInterval);
+                const lightInterval = 4;
+                const lightsPerSegment = Math.floor(segmentLength / lightInterval);
                 
                 for (let seg = 0; seg < repeatCount; seg++) {
                     const baseZ = -seg * segmentLength + 10;
                     
-                    const trackGeometry = new THREE.BoxGeometry(trackWidth, 0.3, segmentLength);
                     const track = new THREE.Mesh(trackGeometry, trackMaterial);
                     track.position.set(0, this.groundY + 0.15, baseZ - segmentLength / 2);
                     track.receiveShadow = true;
                     track.userData = { type: 'trackSegment' };
                     trackGroup.add(track);
-                    
-                    const borderGeometry = new THREE.BoxGeometry(0.4, borderHeight, segmentLength);
                     
                     const leftBorder = new THREE.Mesh(borderGeometry, borderMaterial);
                     leftBorder.position.set(-trackWidth / 2 - 0.2, this.groundY + borderHeight / 2 + 0.15, baseZ - segmentLength / 2);
@@ -227,18 +236,12 @@
                     rightBorder.userData = { type: 'border' };
                     trackGroup.add(rightBorder);
                     
-                    const dashGeometry = new THREE.BoxGeometry(0.2, 0.05, segmentLength / 4);
-                    const dashInterval = 5;
-                    const dashesPerSegment = Math.floor(segmentLength / dashInterval);
-                    
                     for (let i = 0; i < dashesPerSegment; i++) {
                         const dash = new THREE.Mesh(dashGeometry, dashMaterial);
                         dash.position.set(0, this.groundY + 0.4, baseZ - i * dashInterval);
                         dash.userData = { type: 'dash' };
                         trackGroup.add(dash);
                     }
-                    
-                    const neonGeometry = new THREE.BoxGeometry(0.1, 0.1, segmentLength);
                     
                     const leftNeon = new THREE.Mesh(neonGeometry, neonMaterial);
                     leftNeon.position.set(-trackWidth / 2, this.groundY + 0.65, baseZ - segmentLength / 2);
@@ -249,10 +252,6 @@
                     rightNeon.position.set(trackWidth / 2, this.groundY + 0.65, baseZ - segmentLength / 2);
                     rightNeon.userData = { type: 'neon' };
                     trackGroup.add(rightNeon);
-                    
-                    const lightGeometry = new THREE.BoxGeometry(0.15, 0.15, segmentLength / 6);
-                    const lightInterval = 4;
-                    const lightsPerSegment = Math.floor(segmentLength / lightInterval);
                     
                     for (let i = 0; i < lightsPerSegment; i++) {
                         const leftLight = new THREE.Mesh(lightGeometry, lightMaterial);
@@ -265,54 +264,8 @@
                         rightLight.userData = { type: 'light' };
                         trackGroup.add(rightLight);
                     }
-                    
-                    if (seg % 2 === 0) {
-                        const poleGeometry = new THREE.BoxGeometry(0.3, archHeight, 0.3);
-                        const topGeometry = new THREE.BoxGeometry(archWidth, 0.3, 0.3);
-                        
-                        const zPos = baseZ - segmentLength / 2;
-                        
-                        const leftPole = new THREE.Mesh(poleGeometry, archMaterial);
-                        leftPole.position.set(-archWidth / 2, this.groundY + archHeight / 2 + 0.15, zPos);
-                        leftPole.castShadow = true;
-                        leftPole.userData = { type: 'archPole' };
-                        trackGroup.add(leftPole);
-                        
-                        const rightPole = new THREE.Mesh(poleGeometry, archMaterial);
-                        rightPole.position.set(archWidth / 2, this.groundY + archHeight / 2 + 0.15, zPos);
-                        rightPole.castShadow = true;
-                        rightPole.userData = { type: 'archPole' };
-                        trackGroup.add(rightPole);
-                        
-                        const top = new THREE.Mesh(topGeometry, archMaterial);
-                        top.position.set(0, this.groundY + archHeight + 0.15, zPos);
-                        top.castShadow = true;
-                        top.userData = { type: 'archTop' };
-                        trackGroup.add(top);
-                        
-                        const archLightGeometry = new THREE.BoxGeometry(archWidth - 0.5, 0.1, 0.1);
-                        const archLightMaterial = new THREE.MeshStandardMaterial({
-                            color: 0x00ff88,
-                            emissive: 0x00aa55,
-                            emissiveIntensity: 1.5
-                        });
-                        
-                        const archLight = new THREE.Mesh(archLightGeometry, archLightMaterial);
-                        archLight.position.set(0, this.groundY + archHeight + 0.15, zPos);
-                        archLight.userData = { type: 'archLight' };
-                        trackGroup.add(archLight);
-                    }
                 }
                 
-                const glowMaterial = new THREE.MeshStandardMaterial({
-                    color: 0x00ff88,
-                    transparent: true,
-                    opacity: 0.1,
-                    roughness: 0.1,
-                    metalness: 0.8
-                });
-                
-                const glowGeometry = new THREE.BoxGeometry(trackWidth + 0.8, 0.1, this.trackCycleLength);
                 const glow = new THREE.Mesh(glowGeometry, glowMaterial);
                 glow.position.set(0, this.groundY + 0.8, -this.trackCycleLength / 2 + 10);
                 glow.userData = { type: 'glow', baseZ: -this.trackCycleLength / 2 + 10 };
@@ -320,6 +273,8 @@
                 
                 this.scene.add(trackGroup);
                 this.trackGroup = trackGroup;
+                
+                console.log('Track initialized with', trackGroup.children.length, 'objects (object pool pattern)');
             }
             
             createBall() {
@@ -353,9 +308,9 @@
                 this.ground.receiveShadow = true;
                 this.scene.add(this.ground);
                 
-                const gridHelper = new THREE.GridHelper(30, 30, 0x2E7D32, 0x388E3C);
-                gridHelper.position.y = this.groundY + 0.01;
-                this.scene.add(gridHelper);
+                this.gridHelper = new THREE.GridHelper(30, 30, 0x2E7D32, 0x388E3C);
+                this.gridHelper.position.y = this.groundY + 0.01;
+                this.scene.add(this.gridHelper);
             }
             
             setupEventListeners() {
@@ -487,28 +442,28 @@
                 
                 if (this.ball.position.y <= groundLevel) {
                     this.ball.position.y = groundLevel;
-                    
-                    if (Math.abs(this.velocity.y) > 0.1) {
-                        this.velocity.y = -this.velocity.y * this.bounceFactor;
-                        
-                        if (Math.abs(this.velocity.y) < 0.15) {
-                            this.velocity.y = 0;
-                        }
-                    } else {
-                        this.velocity.y = 0;
-                    }
+                    this.velocity.y = 0.35;
                 }
-                
-                this.ball.rotation.x += this.forwardSpeed * this.rollingSpeed * 2;
                 
                 if (this.trackGroup && this.trackCycleLength) {
                     this.trackGroup.children.forEach(child => {
                         child.position.z += this.forwardSpeed;
                         
-                        if (child.position.z > 20) {
+                        if (child.position.z > 30) {
                             child.position.z -= this.trackCycleLength;
                         }
                     });
+                }
+                
+                if (this.ground && this.gridHelper) {
+                    this.ground.position.z += this.forwardSpeed;
+                    this.gridHelper.position.z += this.forwardSpeed;
+                    
+                    const groundCycleLength = 30;
+                    if (this.ground.position.z > 15) {
+                        this.ground.position.z -= groundCycleLength;
+                        this.gridHelper.position.z -= groundCycleLength;
+                    }
                 }
             }
             
