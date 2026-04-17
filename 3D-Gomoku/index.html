@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三维五子棋</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #canvas {
+            display: block;
+            cursor: pointer;
+        }
+        
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+        
+        #ui-panel h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .control-group select,
+        .control-group button {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .control-group button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .control-group button:hover {
+            background-color: #45a049;
+        }
+        
+        .control-group button:active {
+            background-color: #3e8e41;
+        }
+        
+        #game-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            text-align: center;
+        }
+        
+        #current-player {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .player-black {
+            color: #000;
+        }
+        
+        .player-white {
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+        }
+        
+        #winner-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            text-align: center;
+            display: none;
+        }
+        
+        #winner-message h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        
+        #winner-message button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .skin-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .skin-option {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        .skin-option:hover {
+            border-color: #4CAF50;
+        }
+        
+        .skin-option.selected {
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="canvas"></canvas>
+        
+        <div id="ui-panel">
+            <h2>游戏控制</h2>
+            
+            <div class="control-group">
+                <label for="game-mode">游戏模式</label>
+                <select id="game-mode">
+                    <option value="human">双人对战</option>
+                    <option value="ai">人机对战</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="board-size">棋盘大小</label>
+                <select id="board-size">
+                    <option value="5">5x5x5</option>
+                    <option value="7" selected>7x7x7</option>
+                    <option value="9">9x9x9</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>棋盘背景</label>
+                <div class="skin-selector" id="board-skins">
+                    <div class="skin-option selected" data-skin="wood" style="background-color: #8B4513;"></div>
+                    <div class="skin-option" data-skin="marble" style="background-color: #F5F5DC;"></div>
+                    <div class="skin-option" data-skin="metal" style="background-color: #C0C0C0;"></div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>棋子皮肤</label>
+                <div class="skin-selector" id="piece-skins">
+                    <div class="skin-option selected" data-skin="classic" style="background: linear-gradient(45deg, #000, #333);"></div>
+                    <div class="skin-option" data-skin="glossy" style="background: linear-gradient(45deg, #444, #000);"></div>
+                    <div class="skin-option" data-skin="crystal" style="background: linear-gradient(45deg, #666, #fff);"></div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <button id="new-game-btn">新游戏</button>
+            </div>
+        </div>
+        
+        <div id="game-status">
+            <div id="current-player" class="player-black">当前玩家: 黑方</div>
+            <div>点击棋盘放置棋子</div>
+        </div>
+        
+        <div id="winner-message">
+            <h1 id="winner-text"></h1>
+            <button id="restart-btn">再来一局</button>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
